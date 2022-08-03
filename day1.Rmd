@@ -1,0 +1,1073 @@
+---
+title: "IADS Summer School: Day 1. Introduction to the Bayesian Framework"
+author: "A.D.F. Clarke & A.E. Hughes"
+output: beamer_presentation
+theme: "metropolis"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+set.seed(947)
+```
+
+# Intro 
+
+## The plan for today
+
+Today is mainly theory. 
+
+- Bayesian and Frequentists
+- Bayes Theorem
+- Priors
+- Bayesian Linear Models
+
+Tomorrow will be more practical. 
+
+We will be using the `tidyverse` and `tidybayes` packages.
+We will also need to use `rstan`, which requires `rTools`.
+
+*Does everybody have these installed?*
+
+## Who is everybody?
+
+Group introductions:
+
+- Who are you?
+- Why are you here?
+- What would you like to get out of this two day course? 
+
+# Bayesian and Frequentists
+
+## Bayesian Memes for Frequentist Teens
+
+![R memes for statistical fiends](im/frequentists_vs_bayesians.png){height=75%}
+
+
+## Probability interpretations 
+
+The frequentist definition of probability is with respect to "*the long run*" - if we repeat an observation (experiment) multiple times, how often do we observe event $A$. 
+
+   - The probability of rolling a 6 on a die is $1/6$ because if we roll it enough times, $\frac{n_6}{n}=\frac{1}{6}$.
+
+Bayesian probabilities are related to uncertainty, evidence, belief, etc. 
+
+   
+## Probability interpretations 
+
+The frequentist definition of probability is with respect to "*the long run*" - if we repeat an observation (experiment) multiple times, how often do we observe event $A$. 
+
+   - The probability of rolling a 6 on a die is $1/6$ because if we roll it enough times, $\frac{n_6}{n}=\frac{1}{6}$.
+
+Bayesian probabilities are related to uncertainty, evidence, belief, etc. 
+
+   - The probability that I am $x$ years old. 
+  
+The concept of "the long run" doesn't really apply to cases like this. 
+
+*Can you think of any other similar examples?* 
+
+## Frequentist Statistics
+
+Frequentist approaches were very popular during the 20th century
+
+- Unknown parameters (e.g. mean $\mu$, standard deviation $\sigma$) are usually treated as having a fixed, but unknown value.
+
+- We use maximum likelihood estimation when model fitting.
+
+- Tests of *statistical significance* lead us to true/false statements. 
+
+## Bayesian Statistics
+
+Bayesian approaches are older, but as they typically require more computational power, they have only recently become popular.
+
+- Parameters are treated as random variables.
+
+- Fitting a model involves estimating how likely your parameters are to hold different values.
+
+- Less focus on true/false and more on uncertainty.
+
+
+Personally, I feel that this is a far more appropriate framework.
+
+## Uncertainty is Important!
+
+![Let us hope for the best](im/covid_usa.jpg){height=75%}
+
+# Bayes Theorem
+
+## Conditional Probability 
+
+$P(X|Z)$ is the probability of $X$ occurring, given:
+
+  - $Z$ has already occurred.
+  - we assume $Z$ to be true. 
+  
+  
+Euro 2020 Example:
+
+> - Before the championship started, England were the favourites: 
+    - $P(\text{England win}) \approx 17\%$
+> - After they fail to beat Scotland, the bookies adjust their odds: 
+    - $P(\text{England win|failed to beat Scotland}) \approx 12\%$
+> - They somehow managed to beat Germany!?!
+    - $P(\text{England|draw v Scotland \& win v Germany}) \approx 34\%$
+> - Aren't they doing well....
+    -  $P(\text{England|}\ldots\text{reached the finals}) \approx 55\%$
+
+
+
+## Conditional Probability
+
+The formal definition of conditional probability is:
+
+$$P(A|B) = \frac{P(A \cap B)}{P(B)}$$
+*The probability of $A$ given $B$ is the probability of $A$ **and** $B$ divided by the probability of $B$*.
+
+
+Suppose we roll two dice, $d_1$ and $d_2$. 
+
+  - What is $P(d_1+d_2 > 8)$?
+  - How about $P(d_1+d_2 > 8|d_1 = 5)$?
+  
+Now try *Q1a* and *Q1b* from the workbook
+
+## Conditional Probability
+
+Conditional probabilities are (in general) not commutative 
+
+- $P(A|B) \neq P(B|A)$
+
+Example: in the last side we worked out $P(d_1+d_2 > 8|d_1 = 5)$.
+
+- Now work out $P(d_1 = 5 | d_1+d_2 > 8)$
+
+- Compare to $P(d_1+d_2 > 8|d_1 = 5)$
+
+Probabilities can be tricky! 
+
+We regularly get these concepts confused
+
+A large $P(A|B)$ does not imply a large $P(B|A)$!!! 
+
+(real world implications including DNA evidence, etc)
+
+
+
+
+## How to Prove Bayes Theorem
+
+Remember the definition of $P(A|B)$:
+
+$$P(A|B) = \frac{P(A \cap B)}{P(B)}$$
+
+We can rearrange this to get:
+
+$$P(A|B)P(B) = P(A \cap B)$$
+and we can use exactly the same logic to get:
+
+$$P(B|A)P(A) = P(A \cap B)$$
+
+## Bayes Theorem
+
+Therefore, we can equate
+
+$$P(A|B)P(B) = P(B|A)P(A)$$
+
+and finally apply some simple algebra to arrive at:
+
+$$P(A|B) = \frac{P(B|A)P(A)}{P(B)}$$
+
+*You now know how to prove Bayes Theorem!*
+
+## Why is this useful for statistical inference?
+
+Suppose we have a hypothesis (model), $H$, and some data, $D$.
+
+What we usually want to know is $P(H|D)$, how likely is our hypothesis to be true given the data that we have observed. 
+
+Sadly, this is usually hard to work out directly. Consider the example:
+
+  - Out of 100 dice, 1 is loaded and rolls a 6 half of the time. 
+  - Suppose we select a die at random and roll a 6. 
+  - What is the probability that we have rolled the loaded die? 
+  - We will denote this hypothesis $H_L$.
+
+We want to know $P(H|D) =$, but calculating this is hard!
+
+$$P(H_L | 6) = ???$$
+
+## Bayes Theorem Example
+ 
+Writing out the definition of conditional probability doesn't help:
+
+$$P(H_L | 6) = \frac{P(H_L \cup 6)}{P(6)}$$
+But, applying Bayes' Theorem helps us get somewhere!!!
+ 
+$$P(H_L | 6) = \frac{P(6|H_L)P(H_L)}{P(6)}$$
+Now all we have to do is to calculate $P(6|H_L)$, $P(H_L)$ and $P(6)$ individually.
+
+## Bayes Theorem Example
+
+  - Calculating each part:
+
+$$P(6|H_L) = \frac{1}{2} = 0.5$$ 
+$$P(H) = P(H_L) = \frac{1}{100} = 0.01$$
+  
+  - The only tricky part is $P(6)$:   
+$$P(6) = P(H_f)P(6|H_f) + P(H_L)P(6) = \frac{99}{100}\frac{1}{6} + \frac{1}{100}\frac{1}{2} = 0.17$$ 
+  
+  
+## Bayes Theorem Example
+
+  - Hence:
+
+$$P(H_L | 6) = \frac{P(6|H_L)P(H_L)}{P(6)}$$
+$$= \frac{0.5 \times 0.01}{0.17} = \frac{0.01}{0.0047} \approx 0.03$$
+
+  - There is a 97\% chance that we are rolling a fair die. 
+
+*Exercise: what happens if we roll three 6s in a row?*
+*Exercise: How many 6s do we have to roll in row before we are confident that the die is loaded?*
+
+# Priors
+
+## What is a prior belief?
+
+$$P(H | D) = \frac{P(D|H)P(H)}{P(D)}$$
+
+$$P(H | D) \approx P(D|H)P(H)$$
+$P(H|D)$ is our posterior probability: how likely is our hypothesis given the data?
+
+$P(D|H)$ is the likelihood: how likely is the data, if we assume the hypothesis is true? 
+
+$P(H)$ is our prior probability for our hypothesis: how likely do we think it is, before we look at the data. 
+
+
+## Flat priors
+
+  - A *flat* or *uninformative* prior is when we assume everything is equally likely.
+
+  - The frequentist models that you may have used previously are equivalent to a Bayesian model with a flat prior (kind of). 
+
+*We can nearly always do better than this!*
+
+And it isn't as hard as you might think. 
+
+## Why are flat priors bad?
+
+  - A flat prior says that you believe that the answer is as likely to be 0 as it is to be $10^{100}$. 
+
+This seems unreasonable, as $10^{100}$ is a *very* large number. *It's many times more than the estimated number of atoms in the entire universe. *
+
+  - A flat prior also states that you believe that a negative answer is as likely as a positive answer. This is often an unreasonable assumption. 
+  
+*Can you think of any examples?*
+
+## Informative Priors
+
+  - We can often estimate our priors from the literature, every day experience, and best guesses.
+
+  - To specify an informative prior, we need to define how likely every possible answer is. 
+  - In practice, we often use a normal distribution to do this:  $x \sim N(\mu, \sigma)$
+
+*Exercise: What is your prior for the height of my brother?*
+
+   - Weakly-Informative Priors: $x \sim N(0, 1)$ or $x \sim N(0, 10)$ are commonly used, especially if we first scale and centre our data (more on this tomorrow). 
+   
+   
+## Weakly Informative Priors
+
+Even $\sigma=0.1$ can be good!
+```{r, echo = TRUE, fig.height=4}
+tibble(x = seq(-1, 1, 0.01), y = dnorm(x, 0, 0.1)) %>%
+  ggplot(aes(x, y)) + geom_path()
+
+```
+
+## Informative Priors
+
+  - The confusing part is that we are often seeking to fit a distribution to some data. If we are fitting a normal distribution, we will have to give a prior for $\mu$ and $\sigma$. 
+  - And, the prior for $\mu$ is itself a distribution!
+  - This means we have to define a $\mu_{\mu}$ and $\sigma_{\mu}$! 
+  - Distributions of distributions! It's all nested! 
+  
+*Don't worry if you find this confusing, that's natural!*
+
+
+# Example
+
+## Exercise: Students at a UK University
+
+One approach is to "guesstimate." 
+
+We will assume that we can model the number of students at different universities using a normal distribution
+
+```{r, fig.height = 3}
+tibble(x = seq(-3, 3, 0.01),  y= dnorm(x)) %>% ggplot(aes(x, y)) + geom_path() + theme_bw() +
+  scale_x_continuous(breaks = NULL)
+```
+
+## Exercise: Students at a UK University
+
+To define a normal distribution, we need two numbers... $\mu$ and $\sigma$. 
+
+If we are going to do some Bayesian analysis, we need to specify a prior for each of these. 
+
+1. prior for $\mu \sim \mathcal{N}(\mu_m, \sigma_m)$
+
+2. we will discuss the prior for $\sigma$ later. 
+
+You can think of $\mu_m$ as our best guess of what the answer will be. The $\sigma_m$ value indicates how much uncertainty we have about that guess. The larger it is, the more uncertain we are about what the answer will be. 
+
+Split into break-out rooms and come up with a prior for $\mu$.
+
+## Alasdair's Answer
+
+* There are around 300 UG students in each year for psychology.
+* So around 1000 students in total. 
+* If there are $\approx 10$ departments at Essex, that gives us 10,000 students
+* Essex is a relatively small university, so let's set $\mu = 15,000$
+
+If I set $\sigma = 2500$, that gives me a likely range of $\mu =$ 10k-20k
+
+
+## Alasdair's Answer
+
+```{r}
+tibble(x = seq(5000, 25000, 10),  y= dnorm(x, 15000, 2500)) %>% ggplot(aes(x, y)) + geom_path() + theme_bw() + scale_x_continuous("Average number of students at UK University")
+
+```
+
+
+## How about $\sigma$
+
+
+We now need to give a prior for the standard deviation, $\sigma$.
+
+* By definition, $\sigma > 0$, so narrows down the range quite a bit. 
+
+* One simple distribution that we can use is a Uniform distribution: $\sigma \sim U(0, \sigma_{\text{max}})$
+
+* A useful rule-of-thumb is to remember that 95% of probability density of a normal distribution lies between $\pm 1.96$ (I am lazy and use $\pm 2$.)
+
+## Estimating $\sigma$
+
+If $\mu = 15,000$, what range around this seems sensible? 
+
+$\sigma = 5000$ means that we expect 95% of universities to have between 5000 and 25000 students. 
+
+Is this plausible? 
+
+So perhaps $\sigma \sim U(0, 10000)$ is reasonable?
+
+Can you think of any problems?
+
+
+## Comparing my prior of the mean to some datapoints
+
+```{r}
+d <- tibble(
+  university = c("2018/19 Mean", "Essex", "Manchester", "Aberystwyth", "Oxford" ),
+  students = c(15858, 12050, 26855, 6735, 14905)
+)
+
+
+tibble(x = seq(5000, 30000, 10),  y= dnorm(x, 15000, 2500)) %>% ggplot(aes(x, y)) + geom_path() + theme_bw() + scale_x_continuous("Average number of students at UK University") + geom_vline(data = d, aes(xintercept = students, colour= university))
+
+```
+(no, I didn't cheat)
+
+
+## Prior Predictions
+
+We can combine our $\mu$ and $\sigma$ priors to give us some predictions!
+
+```{r, echo = TRUE, warning=FALSE}
+n <- 10
+mus <- rnorm(n,  15000, 2500)
+sigmas <- runif(n, 2500, 7500)
+x <- seq(0, 50000)
+
+
+d <- tibble(iter = as.numeric(), 
+            x = as.numeric(), 
+            y = as.numeric())
+```
+
+## Prior Predictions
+
+We can combine our $\mu$ and $\sigma$ priors to give us some predictions!
+  
+```{r, echo=TRUE}  
+for (ii in 1:n) {
+  d %>% add_row(iter = ii, 
+                x = x, 
+                y = dnorm(x, mus[ii], sigmas[ii])) -> d
+}
+print(d)
+
+```
+
+## Prior Predictions
+
+We can combine our $\mu$ and $\sigma$ priors to give us some predictions!
+  
+```{r, echo=TRUE, fig.height=3, warning=FALSE}  
+ggplot(d, aes(x, y, group = iter)) +  
+  geom_path(alpha = 0.25) + theme_bw() + xlim(0, 40000)
+
+```
+
+## A guesstimating challenge
+
+How many caterpillars do you think are eaten by blue tits in the UK every year?
+(Have a think about this without Google!)
+
+- What information do you need to know to be able to make a good guess?
+- How confident are you about your prediction?
+
+
+# From Prior to Posterior
+
+## University of Essex Table Tennis Team
+
+Suppose we want to estimate the chance that the university's (men's) table tennis team win their next match.
+
+- What would make a good prior? 
+
+Before we think about this, we should ask ourselves:
+
+- What distribution do we want to use to describe the data?
+
+
+## Distributions and Priors
+
+In the previous example (number of students) we were trying to describe the data using a normal distribution. 
+
+- How many parameters does it take to define a normal distribution?
+
+In this example, we want to model binary data (win/loss), so a *binomial* distribution is appropriate.
+
+- How many parameters does it take to define a binomial distribution?
+
+## A prior for $p$
+
+We only have one parameter to worry about: $p$. 
+
+Now we need to define a prior distribution for $p$. To keep things `simple' we will use a normal distribution.
+
+- To get started, we need to give $\mu$ and $\sigma$. You can think of $\mu$ being our best guess of what the answer is, while $\sigma$ represents our uncertainty about this guess. 
+
+- This isn't perfect, as $N(\mu, \sigma)$ isn't bounded by [0, 1]. (I would use a beta-distribution if this was my own research.)
+
+What do we know about the University of Essex's Men's Table Tennis Team? 
+
+## Weakly Informative Prior
+
+For the mean, $\mu$:
+
+  - I know next to nothing about them, so I'll set $\mu = 0.5$. 
+  - I.e., $p=0.5$ is the my best guess!
+  
+For the standard deviation, $\sigma$:
+
+  - $p <0$ and $p>1$ are impossible!
+  - I don't think it is likely that they win (or lose) nearly every game. So $p=0.5$ seems *more likely* than $p<0.1$ or $p>0.9$.
+  - But I wouldn't be shocked if our table tennis team was really good ($p=0.9$) or really bad ($p=0.1$). 
+  
+We want to think about the possible values, and decide which seem plausible, and which seem surprising. 
+
+  
+## My prior
+Taking a normal distribution and setting $\mu = 0.5$ and $\sigma = 0.1$:
+
+\small
+```{r, echo=TRUE, fig.height=4}
+tibble(p = seq(0, 1, 0.01), prior = dnorm(p, 0.5 , 0.1)) %>%
+  ggplot(aes(x = p, y = prior)) + geom_path() 
+```
+
+## My prior
+Increasing $\sigma$ to 0.2:
+```{r}
+tibble(p = seq(0, 1, 0.01), y = dnorm(p, 0.5 , 0.2)) %>%
+  ggplot(aes(x = p, y = y)) + geom_path() 
+```
+
+## Grid Approximation
+
+We will cover two different ways of calculating the posterior from your data and your prior:
+
+- Grid approximation: estimate what the posterior probability of $p=x$ is for a set number of different $x$ (i.e., $x \in \{0, 0.1, 0.2 \ldots, 0.9, 1.0\}$).
+
+- MCMC: ``magically'' estimate a load of samples from the posterior (more on this next week)
+
+Let's enter our grid values,:
+
+```{r, echo = TRUE}
+d <- tibble(p = seq(0, 1, 0.05))
+```
+
+
+## Important Super Useful Tip about seq()
+
+\small
+```{r, echo = TRUE}
+unique(d$p)
+
+filter(d, p == 0.3)
+
+d[4,]
+
+d[4,]$p == 0.15
+
+```
+
+## Computers aren't good at representing numbers!
+
+You can get more info on this with `?'=='`. 
+
+We can get the behaivour we expect using `all.equal()`:
+
+```{r, echo=TRUE}
+all.equal(d[4,]$p, 0.15)
+```
+
+## Computing the prior probabilities
+
+Now that we have defined our grid, we can compute the prior probabilities for each point on it.
+\small
+```{r, echo = TRUE, fig.height = 3.5}
+d %>% mutate(prior = dnorm(p, 0.5, 0.2)) -> d
+
+ggplot(d, aes(x = p, y = prior)) + 
+  geom_path(colour = 'purple', size = 2)
+
+```
+
+## Let's look at some data
+
+They won their first game (against Queen Mary's)!
+
+We would like $Pr(p=x | W)$, but we can't estimate this directly. 
+
+So instead we work out the likelihood $Pr(W | p = x)$.
+$$Pr(w | p=0) = $$
+$$Pr(w | p=0.1) = $$
+$$Pr(w | p=0.2) = $$
+The code is quite simple:
+```{r, echo = TRUE}
+d %>% mutate(
+    l1 =  dbinom(1, 1, p)) -> d 
+```
+
+## Let's look at some dataK
+```{r}
+d
+```
+
+## Plotting the likelihood
+```{r}
+ggplot(d, aes(x = p)) + 
+  geom_path(aes(y = prior), colour = 'purple', size = 2) +
+  geom_path(aes(y = l1), colour = 'orange', size = 2) +
+  scale_y_continuous("probability density") +
+  theme_bw()
+```
+
+## Computing the posterior
+
+We can't just use the likelihood, $Pr(w|p=x)$, this wouldn't make much sense.
+- Can you think why? 
+
+We can use Bayes Theorem to combine the likelihood with our prior:
+```{r, echo = TRUE}
+d %>% mutate(
+    post1 = prior * l1,
+    post1 = length(post1) * post1/sum(post1)) -> d
+```
+
+## Computing the posterior
+
+
+```{r}
+d
+```
+
+## Plotting posterior
+
+```{r}
+ggplot(d, aes(x = p)) + 
+  geom_path(aes(y = prior), colour = 'purple', size = 2) +
+  geom_path(aes(y = l1), colour = 'orange', size = 2) +
+  geom_path(aes(y = post1), colour = 'green', size = 2) +
+  scale_y_continuous("probability density") +
+  theme_bw()
+```
+
+## Game Two
+
+Sadly, Essex lost their second game (against Burnel)
+
+- Our previous posterior is our new prior - we have updated what we know!
+- OUr likelihood is the same as for Game One. 
+- We calculate the new posterior as before
+
+```{r, echo = TRUE}
+d %>% mutate(
+    l2 =  dbinom(1, 1, p),
+    post2 = post1 * l2,
+    post2 = length(post2) * post1/sum(post2)) -> d 
+
+```
+
+## Game 2
+
+```{r}
+d <- d %>%
+  mutate(
+    l2 = dbinom(0, 1, p),
+    post2 = post1 * l2,
+    post2 = post2 / sum(post2) * length(post2)) 
+d %>%
+  ggplot(aes(x = p)) +
+  geom_path(aes(y = prior), colour = 'grey', size = 1) +
+  geom_path(aes(y = post1), colour = 'purple', size = 2) +
+  geom_path(aes(y = l2), colour = 'orange', size = 2) +
+  geom_path(aes(y = post2), colour = 'green', size = 2) +
+  scale_y_continuous("probability density") +
+  theme_bw()
+```
+
+## Game 3 
+
+They managed to beat King's College!
+
+```{r}
+d <- d %>%
+  mutate(
+    l3 = dbinom(1, 1, p),
+    post3 = post2 * l3,
+    post3 = post3 / sum(post3) * length(post3)) 
+d %>%
+  ggplot(aes(x = p)) +
+  geom_path(aes(y = prior), colour = 'grey', size = 1) +
+  geom_path(aes(y = post2), colour = 'purple', size = 2) +
+  geom_path(aes(y = l3), colour = 'orange', size = 2) +
+  geom_path(aes(y = post3), colour = 'green', size = 2) +
+  scale_y_continuous("probability density") +
+  theme_bw()
+```
+
+
+## Game 4
+
+Another game against Queen Marys and another win!
+
+```{r}
+d <- d %>%
+  mutate(
+    l4 = dbinom(1, 1, p),
+    post4 = post3 * l4,
+    post4 = post4 / sum(post4) * length(post4)) 
+d %>%
+  ggplot(aes(x = p)) +
+  geom_path(aes(y = prior), colour = 'grey', size = 1) +
+  geom_path(aes(y = post3), colour = 'purple', size = 2) +
+  geom_path(aes(y = l4), colour = 'orange', size = 2) +
+  geom_path(aes(y = post4), colour = 'green', size = 2) +
+  scale_y_continuous("probability density") +
+  theme_bw()
+```
+
+## Game 5
+
+A narrow loss to East Anglia
+
+```{r}
+d <- d %>%
+  mutate(
+    l5 = dbinom(0, 1, p),
+    post5 = post4 * l5,
+    post5 = post5 / sum(post5) * length(post5)) 
+d %>%
+  ggplot(aes(x = p)) +
+  geom_path(aes(y = prior), colour = 'grey', size = 1) +
+  geom_path(aes(y = post4), colour = 'purple', size = 2) +
+  geom_path(aes(y = l5), colour = 'orange', size = 2) +
+  geom_path(aes(y = post5), colour = 'green', size = 2) +
+  scale_y_continuous("probability density") +
+  theme_bw()
+```
+
+## Game 6
+
+LSE didn't show up, that another win!
+
+```{r}
+d <- d %>%
+  mutate(
+    l6 = dbinom(1, 1, p),
+    post6 = post5 * l6,
+    post6 = post6 / sum(post6) * length(post6)) 
+d %>%
+  ggplot(aes(x = p)) +
+  geom_path(aes(y = prior), colour = 'grey', size = 1) +
+  geom_path(aes(y = post5), colour = 'purple', size = 2) +
+  geom_path(aes(y = l6), colour = 'orange', size = 2) +
+  geom_path(aes(y = post6), colour = 'green', size = 2) +
+  scale_y_continuous("probability density") +
+  theme_bw()
+```
+
+## Game 7
+
+An easy 14-3 win against Burnel
+
+```{r}
+d <- d %>%
+  mutate(
+    l7 = dbinom(1, 1, p),
+    post7 = post6 * l7,
+    post7 = post7 / sum(post7) * length(post7)) 
+d %>%
+  ggplot(aes(x = p)) +
+  geom_path(aes(y = prior), colour = 'grey', size = 1) +
+  geom_path(aes(y = post6), colour = 'purple', size = 2) +
+  geom_path(aes(y = l7), colour = 'orange', size = 2) +
+  geom_path(aes(y = post7), colour = 'green', size = 2) +
+  scale_y_continuous("probability density") +
+  theme_bw()
+```
+
+
+## Summarising the posterior
+
+Any easy way of working with Bayesian models is to sample from the posterior:
+
+```{r echo = FALSE}
+d <- d %>% select(p ,prior, post7)
+```
+
+```{r echo = TRUE}
+sample_n(d, 5, replace = TRUE, weight = d$post7)
+```
+
+## Summarising the posterior
+
+The `tidybayes` package has some useufl functions for summarising posteriors:
+
+
+
+```{r echo = TRUE}
+post <- sample_n(d, 10000, replace = TRUE, weight = d$post7)
+
+library(tidybayes)
+
+post %>% mean_hdci(p)
+
+```
+
+
+We can use our posterior to see what likely values for $p$ are:
+\small
+```{r, echo = TRUE}
+d %>% select(p, prior, post = "post7") %>%
+  mutate(cdf = cumsum(post)) -> d
+
+filter(d, post == max(post))
+
+d[4,]
+```
+
+## Conclusions
+
+Grid approximation is simple, but time consuming. 
+
+The accuracy of our results is partly determined by the coarseness of our grid. 
+- You can revisit this example using a finer grid in the workbook
+
+We rarely use grid approximation for more complex problems, but it is useful to run through once or twice to build intuition about Bayesian analysis. 
+
+# Bayesian Linear Models
+
+## Mathematical Outline
+
+$$ y \sim N(\mu, \sigma)$$
+$$\mu = \beta_1x + \beta_0$$
+
+But now, instead of finding the *best fit*, we will estimate how likely every possibly fit is, (given the data).
+
+We now have three parameters to define priors for: $\beta_1$, $\beta_0$ and $\sigma$.
+
+## An abstact example
+
+Suppose we want to fit a linear model to some data. We have two variables, $x$, and $y$.
+
+- Here are some example points:
+
+\small
+```{r}
+b0 = 10
+b1 = -2
+sigma = 5
+x = x = seq(-10, 10, 1)
+d1 <- tibble(x = x, y = b0 + b1 * x + rnorm(length(x), mean = 0, sd =sigma))
+d1
+```
+
+Sadly we know very little else about the data. 
+
+## Chosing priors when  you know very little
+
+However, we nearly always know something about the *scale* of the data (and if we don't, we could always rescale the data before modelling!). 
+
+- Think about the data you plan to collect yourself... is it reasonable to assume that you know the approximate scale ahead of time? Are your numbers going to be between 0 and 1. Or perhaps you are measuring reaction time in ms. 
+
+
+In the data on the last slide, the $y$ values seemed to be around about 10. Give or take. 
+
+We can also check what the range of the $x$ values are, as this is our indep. variable.
+
+\tiny
+```{r}
+unique(d1$x)
+
+```
+
+## Some weak priors
+
+We should probably use some weakly-informative priors.
+
+- $N(0, 10)$ for $\beta_0$ seems reasonable: when $x=0$, we think $y$ is likely to be between -20 and 20. We often don't rarely care too much about the intercept.
+- $N(0, 1)$ for $\beta_1$ is a good choice for the slope. This says that we expect the slope to be shallow, and allows us to be *conservative*. We would need a lot of data to convince is that the slope was 100!
+- For $\sigma$, we will use $U(0, 10)$ (uniform distribution)
+
+Let's sample some values from these priors to see what type of relationship between $x$ and $y$ we are assuming.
+
+## Prior Predictions
+
+```{r, echo = TRUE}
+n_iter = 1000
+beta0 <- rnorm(n_iter, mean = 0, sd = 10)
+beta1 <- rnorm(n_iter, mean = 0, sd = 1)
+sigma <- runif(n_iter, min = 0, max = 10)
+
+x <- seq(-10, 10, 0.1)
+n <- length(x)
+y <- rep(x, n_iter) * rep(beta1, each = n) + 
+  rep(beta0, each = n) 
+
+d <- tibble(
+  x = rep(x, n_iter), 
+  y = y, 
+  r = rep(1:n_iter, each = n))
+```
+
+## 100 Prior Predictions - $\beta_0$ and $\beta_1$
+```{r}
+ggplot(d, aes(x = x, y = y)) + geom_path(aes(group = r), colour = "darkred", alpha = 0.25, size = 1) + ylim(-50, 50) + ggthemes::theme_tufte()
+
+```
+
+
+## Prior Predictions - an example of $\sigma$
+
+```{r}
+ii = 3
+
+d_sim <- filter(d, r == ii) %>% mutate(p = y + rnorm(201, 0, sigma[ii]))
+
+ggplot(d, aes(x = x, y = y)) + 
+  geom_path(aes(group = r), colour = "darkred", alpha = 0.1, size = 1) +
+  geom_path(data = filter(d, r == ii), aes(x, y), colour = "deepskyblue3", size = 2) + 
+  geom_point(data = d_sim, aes(x, p), alpha = 0.5, colour = "deepskyblue3") + ylim(-50, 50) + 
+  ggthemes::theme_tufte()
+```
+
+## Prior Predictions - an example of $\sigma$
+
+```{r}
+ii = 5
+
+d_sim <- filter(d, r == ii) %>% mutate(p = y + rnorm(201, 0, sigma[ii]))
+
+ggplot(d, aes(x = x, y = y)) + 
+  geom_path(aes(group = r), colour = "darkred", alpha = 0.1, size = 1) +
+  geom_path(data = filter(d, r == ii), aes(x, y), colour = "deepskyblue3", size = 2) + 
+  geom_point(data = d_sim, aes(x, p), alpha = 0.5, colour = "deepskyblue3") + ylim(-50, 50) + 
+  ggthemes::theme_tufte()
+```
+
+## Prior Predictions - an example of $\sigma$
+
+```{r}
+ii = 1
+
+d_sim <- filter(d, r == ii) %>% mutate(p = y + rnorm(201, 0, sigma[ii]))
+
+ggplot(d, aes(x = x, y = y)) + 
+  geom_path(aes(group = r), colour = "darkred", alpha = 0.1, size = 1) +
+  geom_path(data = filter(d, r == ii), aes(x, y), colour = "deepskyblue3", size = 2) + 
+  geom_point(data = d_sim, aes(x, p), alpha = 0.5, colour = "deepskyblue3") + ylim(-50, 50) + 
+  ggthemes::theme_tufte()
+```
+
+## Now we introduce some data
+
+```{r}
+b0 = 4
+b1 = -2
+sig = 5
+x = x = runif(20, -10, 10)
+d1 <- tibble(x = x, y = b0 + b1 * x + rnorm(length(x), mean = 0, sd =sig))
+
+ggplot() + geom_path(data = d, aes(x = x, y = y, group= r), alpha = 0.15, colour = "darkred") +
+   geom_point(data = d1, aes(x, y), size = 3, colour = "mediumpurple4") + ylim(-50, 50) +
+  ggthemes::theme_tufte()
+```
+
+## Fitting a Bayesian linear model
+
+In the table tennis (binomial) example, we only have one parameter to estimate. In this example, we now have three: $\beta0, \beta1, \sigma$. 
+
+In the table tennis example, we knew that our parameter, $p$ was between 0 and 1, and we calculated the posterior values for equally spaced 11 values.
+
+In this example, our parameters are no longer bounded, and even if we only tested 11 values per parameter, we would still have $11\times 11 \times 11 = 1331$ values to test! 
+
+- You can imagine how this quickly becomes unwieldy!
+- Luckily, Anna will be going over a more powerful method next week!
+- Today, we will simply compute the posterior probability of each of our 100 samples from our prior. 
+
+## p(H | D)
+
+```{r, warning=FALSE}
+ii = 2
+
+d_sim <- filter(d, r == ii) %>% mutate(p = y + rnorm(201, 0, sigma[ii]))
+
+ggplot(d, aes(x = x, y = y)) + 
+  geom_path(aes(group = r), colour = "darkred", alpha = 0.1, size = 1) +
+  geom_path(data = filter(d, r == ii), aes(x, y), colour = "deepskyblue3", size = 2) + 
+  geom_point(data = d_sim, aes(x, p), alpha = 0.5, colour = "deepskyblue3") + 
+  geom_point(data = d1, aes(x, y), size = 3, colour = "mediumpurple4") + ylim(-50, 50) +
+  ggthemes::theme_tufte()
+```
+
+##  $p(H_i)$ - prior 
+
+```{r, warning=FALSE}
+
+log_p_D_H <- function(my_dat, b0, b1, s) {
+
+  logP <- 0
+  for (jj in 1:nrow(d1)) {
+    mu <- b0 + b1 * d1$x[jj]
+    logP <- logP + log(dnorm(d1$y[jj], mu, s))
+  }
+  return(logP)
+}
+
+d$p_DgH <- NaN
+d$p_H <- NaN
+
+for (ii in 1:length(beta0)) 
+{
+  p <- log_p_D_H(d1, beta0[ii], beta1[ii], sigma[ii])
+  p0 = log(dnorm(beta0[ii], 0, 10)) + log(dnorm(beta1[ii], 0, 10))  + log(dunif(sigma[ii], 0, 10))
+  
+  d %>% mutate(
+    p_DgH = if_else(r == ii, p, p_DgH),
+    p_DgH = if_else(p_DgH< -100, -100, p_DgH),
+    p_H = if_else(r == ii, p0, p_H),
+    post = p_H + p_DgH 
+    ) -> d
+}
+
+d %>% mutate(p_DgH = if_else(p_DgH < -500, -500, p_DgH )) -> d
+```
+
+```{r, warning=FALSE}
+ggplot(d, aes(x = x, y = y)) + 
+  geom_path(aes(group = r, colour = p_H), alpha = 0.5, size = 1) +
+  geom_point(data = d1, aes(x, y), size = 3, colour = "mediumpurple4") +
+  ggthemes::theme_tufte() + ylim(-50, 50) + 
+  scale_colour_viridis_c(option = "inferno") + 
+  theme(legend.position = "none")
+```
+
+## $p(D | H_i)$
+
+```{r, warning=FALSE}
+ggplot(d, aes(x = x, y = y)) + 
+  geom_path(aes(group = r, colour = p_DgH), alpha = 0.5, size = 1) +
+  geom_point(data = d1, aes(x, y), size = 3, colour = "mediumpurple4") +
+  ggthemes::theme_tufte() + ylim(-50, 50) + 
+  scale_colour_viridis_c(option = "inferno") + 
+  theme(legend.position = "none")
+```
+
+## $p(D | H_i)$
+
+```{r, warning=FALSE}
+ggplot(d, aes(x = x, y = y)) + 
+  geom_path(aes(group = r, colour = p_DgH, alpha = 0.5 + (-p_DgH)/max(p_DgH)), size = 1) +
+  geom_point(data = d1, aes(x, y), size = 3, colour = "mediumpurple4") +
+  ggthemes::theme_tufte() + ylim(-50, 50) + 
+  scale_colour_viridis_c(option = "inferno") + 
+  theme(legend.position = "none")
+```
+
+
+
+##  $p(H_i | D)$ 
+
+```{r, warning=FALSE}
+
+ggplot(d, aes(x = x, y = y)) + 
+  geom_path(aes(group = r, colour = post,alpha = 0.5 + (-post)/max(post)), size = 1) +
+  geom_point(data = d1, aes(x, y), size = 3, colour = "mediumpurple4") +
+  ggthemes::theme_tufte() + ylim(-50, 50) + 
+  scale_colour_viridis_c(option = "inferno") + 
+  theme(legend.position = "none")
+```
+
+
+## Summarising your posterior
+
+We will take the top 10% of the lines we tested.
+
+```{r}
+d %>% group_by(r) %>%
+  summarise(post = unique(post)) %>%
+  mutate(beta0 = beta0,
+         beta1 = beta1,
+         sigma = sigma, 
+         post = exp(post),
+         post = (post/sum(post))) -> d_post_summary
+
+q<- quantile(d_post_summary$post, 0.9)
+
+d %>% mutate(post = exp(post),
+             post = post/sum(post)) %>%
+  filter(post > q) -> d_post
+
+ggplot(d_post,  aes(x = x, y = y)) + 
+  geom_path(aes(group = r, colour = post), size = 1, alpha= 0.2) +
+  geom_point(data = d1, aes(x, y), size = 3, colour = "mediumpurple4") +
+  ggthemes::theme_tufte() + ylim(-50, 50) + 
+  scale_colour_viridis_c(option = "inferno") + 
+  theme(legend.position = "none")
+```
+
+## Bayesian Linear Models
+
+How I think of it:
+
+- A frequentist lm is the estimated best fit line through your sample.
+- A Bayesian lm contains all possible lines through your sample, with an estimate of likely each line is to have generated your data. 
+
+Tomorrow Anna will cover how to use `brms`, a very powerful package for fitting Bayesian models.
+
+That's all for now. 
